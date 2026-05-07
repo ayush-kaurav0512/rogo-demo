@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rogo — Financial Document Intelligence Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gold: #C9A84C;
+  --gold2: #E8C76A;
+  --gold-dim: rgba(201,168,76,0.1);
+  --gold-border: rgba(201,168,76,0.2);
+  --bg: #080A0A;
+  --bg2: #0E1212;
+  --bg3: #141A1A;
+  --bg4: #1A2222;
+  --bg5: #202C2C;
+  --line: rgba(255,255,255,0.05);
+  --line2: rgba(255,255,255,0.09);
+  --text: #EDF2F2;
+  --text2: #8BA8A8;
+  --text3: #4A6464;
+  --ok: #22C55E;
+  --ok-dim: rgba(34,197,94,0.1);
+  --warn: #F59E0B;
+  --warn-dim: rgba(245,158,11,0.1);
+  --danger: #EF4444;
+  --danger-dim: rgba(239,68,68,0.1);
+  --info: #60A5FA;
+  --info-dim: rgba(96,165,250,0.1);
+  --purple: #A78BFA;
+  --purple-dim: rgba(167,139,250,0.1);
+  --r: 8px;
+  --rl: 12px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;min-height:100vh}
+code,pre,.mono{font-family:'JetBrains Mono',monospace}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+
+/* SIDEBAR */
+.sidebar{background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:0}
+.sidebar-top{padding:20px 16px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.brand-mark{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--gold) 0%,#8B6914 100%);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#080A0A}
+.brand-name{font-size:14px;font-weight:600;color:var(--text)}
+.brand-sub{font-size:10px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase}
+.workflow-badge{display:flex;align-items:center;gap:6px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--gold);font-weight:500}
+
+.nav-section{padding:12px 0}
+.nav-label{font-size:9px;color:var(--text3);letter-spacing:0.1em;text-transform:uppercase;padding:0 16px 6px;font-weight:500}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;cursor:pointer;color:var(--text3);font-size:12px;transition:all 0.12s;border-left:2px solid transparent;position:relative}
+.nav-item:hover{background:var(--bg3);color:var(--text2)}
+.nav-item.active{background:var(--gold-dim);color:var(--gold);border-left-color:var(--gold)}
+.nav-item.done::after{content:'✓';position:absolute;right:14px;font-size:10px;color:var(--ok)}
+.nav-item.running::after{content:'';position:absolute;right:14px;width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
+.nav-num{width:18px;height:18px;border-radius:50%;background:var(--bg4);color:var(--text3);font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.nav-item.active .nav-num,.nav-item.done .nav-num{background:var(--gold);color:var(--bg)}
+
+.sidebar-stats{padding:16px;border-top:1px solid var(--line);margin-top:auto}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0}
+.stat-label{font-size:11px;color:var(--text3)}
+.stat-val{font-size:11px;font-weight:500;font-family:'JetBrains Mono',monospace}
+
+/* MAIN */
+.main{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--line);padding:12px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar-title{font-size:13px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:8px}
+.topbar-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:var(--r);font-size:11.5px;font-weight:500;cursor:pointer;border:none;font-family:'Sora',sans-serif;transition:all 0.12s;text-decoration:none}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--line2)}
+.btn-ghost:hover{background:var(--bg4);color:var(--text)}
+.btn-gold{background:var(--gold);color:var(--bg);font-weight:600}
+.btn-gold:hover{background:var(--gold2)}
+.btn-gold:disabled{opacity:0.4;cursor:not-allowed}
+
+.content{flex:1;padding:20px 24px;overflow-y:auto}
+
+/* PIPELINE STEPS */
+.pipeline-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.pipeline-title{font-size:17px;font-weight:600;color:var(--text)}
+.pipeline-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.step-connector{display:flex;justify-content:center;margin:6px 0}
+.step-connector-line{width:1px;height:16px;background:linear-gradient(to bottom,var(--gold-border),transparent)}
+
+/* STEP CARD */
+.step{background:var(--bg2);border:1px solid var(--line);border-radius:var(--rl);overflow:hidden;margin-bottom:8px;transition:border-color 0.2s}
+.step.active-step{border-color:var(--gold-border)}
+.step.complete{border-color:rgba(34,197,94,0.2)}
+.step-head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.step-num.pending{background:var(--bg4);color:var(--text3)}
+.step-num.active{background:var(--gold);color:var(--bg)}
+.step-num.done{background:var(--ok-dim);color:var(--ok);border:1px solid rgba(34,197,94,0.3)}
+.step-num.running{background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold-border);animation:pulse 1.5s infinite}
+.step-info{flex:1}
+.step-name{font-size:13px;font-weight:500;color:var(--text)}
+.step-desc{font-size:11px;color:var(--text3);margin-top:2px}
+.step-badge{font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500;flex-shrink:0}
+.badge-ok{background:var(--ok-dim);color:var(--ok)}
+.badge-warn{background:var(--warn-dim);color:var(--warn)}
+.badge-danger{background:var(--danger-dim);color:var(--danger)}
+.badge-info{background:var(--info-dim);color:var(--info)}
+.badge-gold{background:var(--gold-dim);color:var(--gold)}
+.badge-purple{background:var(--purple-dim);color:var(--purple)}
+.badge-neutral{background:var(--bg4);color:var(--text3)}
+.step-body{padding:0 16px 16px;display:none}
+.step-body.open{display:block}
+.step-divider{height:1px;background:var(--line);margin-bottom:14px}
+
+/* UPLOAD ZONE */
+.upload-zone{border:1px dashed var(--line2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all 0.15s;position:relative}
+.upload-zone:hover{border-color:var(--gold-border);background:var(--gold-dim)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-icon{font-size:22px;margin-bottom:8px;color:var(--text3)}
+.upload-text{font-size:12px;color:var(--text2);margin-bottom:4px}
+.upload-sub{font-size:10.5px;color:var(--text3)}
+.file-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line2);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2);margin-top:8px}
+
+/* OUTPUT GRID */
+.output-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.output-card{background:var(--bg3);border-radius:var(--r);border:1px solid var(--line);padding:12px 14px}
+.output-label{font-size:10px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.output-val{font-size:20px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.output-sub{font-size:10.5px;color:var(--text3);margin-top:3px}
+
+/* SCORE GAUGE */
+.gauge-wrap{position:relative;width:80px;height:80px;margin:0 auto 8px}
+.gauge-label{font-size:11px;color:var(--text3);text-align:center}
+
+/* EVIDENCE TABLE */
+.evi-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.evi-table th{text-align:left;padding:6px 8px;font-weight:500;color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--line)}
+.evi-table td{padding:7px 8px;border-bottom:1px solid var(--line);color:var(--text2)}
+.evi-table tr:last-child td{border-bottom:none}
+.evi-table td:first-child{color:var(--text);font-weight:500}
+
+/* FINDING CARDS */
+.findings-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.finding{background:var(--bg3);border-radius:var(--r);border:1px solid var(--line);border-left:3px solid var(--border-accent, var(--line2));padding:11px 13px}
+.finding-head{display:flex;align-items:flex-start;gap:8px;margin-bottom:5px}
+.finding-type{font-size:10px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase}
+.finding-text{font-size:12px;color:var(--text2);line-height:1.6}
+.finding-source{font-size:10px;color:var(--text3);margin-top:4px}
+.confidence-bar{height:3px;border-radius:2px;background:var(--bg4);margin-top:6px;overflow:hidden}
+.confidence-fill{height:100%;border-radius:2px}
+
+/* AI STREAM */
+.ai-stream-wrap{background:var(--bg3);border:1px solid var(--gold-border);border-radius:var(--r);padding:14px;min-height:80px;margin-top:12px}
+.ai-stream-label{font-size:10px;color:var(--gold);font-weight:600;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.ai-stream-text{font-size:12.5px;color:var(--text2);line-height:1.75}
+.ai-stream-text strong{color:var(--text);font-weight:500}
+.cursor{display:inline-block;width:2px;height:13px;background:var(--gold);margin-left:1px;vertical-align:middle;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+/* PROGRESS BAR */
+.prog-wrap{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;margin:8px 0}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));border-radius:2px;transition:width 0.4s ease}
+
+/* TABS */
+.tabs{display:flex;gap:3px;margin-bottom:14px;background:var(--bg3);border-radius:var(--r);padding:3px;border:1px solid var(--line)}
+.tab-btn{flex:1;padding:5px 8px;border-radius:6px;border:none;background:none;font-family:'Sora',sans-serif;font-size:11px;color:var(--text3);cursor:pointer;transition:all 0.12s;font-weight:500}
+.tab-btn.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,0.3)}
+
+/* METRIC ROW */
+.metric-row{display:flex;gap:8px;margin-bottom:12px}
+.metric-mini{flex:1;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:center}
+.metric-mini-val{font-size:18px;font-weight:600;font-family:'JetBrains Mono',monospace;display:block;margin-bottom:3px}
+.metric-mini-label{font-size:10px;color:var(--text3)}
+
+/* TEXTAREA */
+.doc-input{width:100%;background:var(--bg3);border:1px solid var(--line2);border-radius:var(--r);padding:12px;color:var(--text);font-family:'Sora',sans-serif;font-size:12px;line-height:1.6;resize:vertical;min-height:120px;outline:none}
+.doc-input:focus{border-color:var(--gold-border)}
+.doc-input::placeholder{color:var(--text3)}
+
+/* RUN BUTTON */
+.run-btn{width:100%;padding:10px;background:var(--gold);color:var(--bg);font-family:'Sora',sans-serif;font-size:13px;font-weight:600;border:none;border-radius:var(--r);cursor:pointer;transition:all 0.15s;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:8px}
+.run-btn:hover{background:var(--gold2)}
+.run-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+/* SPINNER */
+.spin{width:14px;height:14px;border:2px solid rgba(8,10,10,0.3);border-top-color:#080A0A;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* COMPARE GRID */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.cmp-card{background:var(--bg3);border-radius:var(--r);border:1px solid var(--line);padding:12px}
+.cmp-head{font-size:11px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
+
+/* CHEVRON */
+.chevron{transition:transform 0.2s;color:var(--text3);font-size:12px;margin-left:auto}
+.chevron.open{transform:rotate(180deg)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <div class="brand">
+      <div class="brand-mark">R</div>
+      <div>
+        <div class="brand-name">Rogo AI</div>
+        <div class="brand-sub">Data Quality Workflow</div>
+      </div>
+    </div>
+    <div class="workflow-badge">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;animation:pulse 2s infinite"></span>
+      Financial Doc Intelligence
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-label">Pipeline stages</div>
+    <div class="nav-item active running" id="nav-1" onclick="goStep(1)">
+      <div class="nav-num">1</div>Document Ingestion
+    </div>
+    <div class="nav-item" id="nav-2" onclick="goStep(2)">
+      <div class="nav-num">2</div>Quality Scoring
+    </div>
+    <div class="nav-item" id="nav-3" onclick="goStep(3)">
+      <div class="nav-num">3</div>Hallucination Detection
+    </div>
+    <div class="nav-item" id="nav-4" onclick="goStep(4)">
+      <div class="nav-num">4</div>Freshness Decay
+    </div>
+    <div class="nav-item" id="nav-5" onclick="goStep(5)">
+      <div class="nav-num">5</div>Model Eval Runner
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--line);padding:12px 0">
+    <div class="nav-label">Output</div>
+    <div class="nav-item" id="nav-6" onclick="goStep(6)">
+      <div class="nav-num">6</div>Intelligence Report
+    </div>
+  </div>
+
+  <div class="sidebar-stats">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;font-weight:500;margin-bottom:8px">Live pipeline stats</div>
+    <div class="stat-row">
+      <span class="stat-label">Docs indexed</span>
+      <span class="stat-val" style="color:var(--text)">50.2M</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Hallucination rate</span>
+      <span class="stat-val" style="color:var(--ok)">3.9%</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Avg quality score</span>
+      <span class="stat-val" style="color:var(--gold)">84.2</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Stale docs flagged</span>
+      <span class="stat-val" style="color:var(--warn)">1,247</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Built by</span>
+      <span class="stat-val" style="color:var(--text2);font-size:10px">Ayush Kaurav</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">
+        Financial Document Quality &amp; Hallucination Detection
+        <span class="step-badge badge-gold" style="font-size:10px;padding:2px 8px;border-radius:4px">AI Workflow Demo</span>
+      </div>
+      <div class="topbar-sub">Paste a financial document extract → run the full pipeline → get intelligence Rogo's team can act on</div>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-ghost" onclick="resetAll()">↺ Reset</button>
+      <button class="btn btn-gold" id="main-run-btn" onclick="runFullPipeline()">▶ Run full pipeline</button>
+    </div>
+  </div>
+
+  <div class="content" id="content">
+
+    <!-- STEP 1: DOCUMENT INGESTION -->
+    <div class="step active-step" id="step-1">
+      <div class="step-head" onclick="toggleStep(1)">
+        <div class="step-num active" id="snum-1">1</div>
+        <div class="step-info">
+          <div class="step-name">Document Ingestion &amp; Parsing</div>
+          <div class="step-desc">Paste an SEC filing, earnings call, or analyst report extract</div>
+        </div>
+        <span class="step-badge badge-gold">Input required</span>
+        <span class="chevron open" id="chev-1">▾</span>
+      </div>
+      <div class="step-body open" id="body-1">
+        <div class="step-divider"></div>
+
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button class="tab-btn active" onclick="loadSample('earnings', this)">Earnings call</button>
+          <button class="tab-btn" onclick="loadSample('10k', this)">10-K filing</button>
+          <button class="tab-btn" onclick="loadSample('merger', this)">M&amp;A memo</button>
+          <button class="tab-btn" onclick="loadSample('custom', this)">Custom</button>
+        </div>
+
+        <textarea class="doc-input" id="doc-text" placeholder="Paste a financial document extract here — earnings call transcript, SEC filing, CIM, or analyst report..."></textarea>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+          <span style="font-size:10.5px;color:var(--text3)" id="doc-stats">0 words · 0 chars</span>
+          <div style="display:flex;gap:6px">
+            <span class="step-badge badge-neutral" id="doc-source-tag">No source</span>
+            <span class="step-badge badge-neutral" id="doc-type-tag">Unknown type</span>
+          </div>
+        </div>
+
+        <button class="run-btn" onclick="runStep1()">
+          Parse document →
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: QUALITY SCORING -->
+    <div class="step" id="step-2">
+      <div class="step-head" onclick="toggleStep(2)">
+        <div class="step-num pending" id="snum-2">2</div>
+        <div class="step-info">
+          <div class="step-name">Multi-Dimension Quality Scoring</div>
+          <div class="step-desc">Numerical integrity · Citation density · Entity completeness · Temporal validity</div>
+        </div>
+        <span class="step-badge badge-neutral" id="badge-2">Pending</span>
+        <span class="chevron" id="chev-2">▾</span>
+      </div>
+      <div class="step-body" id="body-2">
+        <div class="step-divider"></div>
+        <div id="quality-output"></div>
+      </div>
+    </div>
+
+    <!-- STEP 3: HALLUCINATION DETECTION -->
+    <div class="step" id="step-3">
+      <div class="step-head" onclick="toggleStep(3)">
+        <div class="step-num pending" id="snum-3">3</div>
+        <div class="step-info">
+          <div class="step-name">Hallucination &amp; Claim Verification</div>
+          <div class="step-desc">Claude cross-checks factual claims against financial ground truth</div>
+        </div>
+        <span class="step-badge badge-neutral" id="badge-3">Pending</span>
+        <span class="chevron" id="chev-3">▾</span>
+      </div>
+      <div class="step-body" id="body-3">
+        <div class="step-divider"></div>
+        <div id="hallucination-output"></div>
+      </div>
+    </div>
+
+    <!-- STEP 4: FRESHNESS DECAY -->
+    <div class="step" id="step-4">
+      <div class="step-head" onclick="toggleStep(4)">
+        <div class="step-num pending" id="snum-4">4</div>
+        <div class="step-info">
+          <div class="step-name">Freshness Decay Scoring</div>
+          <div class="step-desc">Time-weighted relevance decay model — should this doc stay in the RAG index?</div>
+        </div>
+        <span class="step-badge badge-neutral" id="badge-4">Pending</span>
+        <span class="chevron" id="chev-4">▾</span>
+      </div>
+      <div class="step-body" id="body-4">
+        <div class="step-divider"></div>
+        <div id="freshness-output"></div>
+      </div>
+    </div>
+
+    <!-- STEP 5: MODEL EVAL -->
+    <div class="step" id="step-5">
+      <div class="step-head" onclick="toggleStep(5)">
+        <div class="step-num pending" id="snum-5">5</div>
+        <div class="step-info">
+          <div class="step-name">LLM-as-Judge Model Evaluation</div>
+          <div class="step-desc">Claude scores Rogo's AI output against this document's ground truth</div>
+        </div>
+        <span class="step-badge badge-neutral" id="badge-5">Pending</span>
+        <span class="chevron" id="chev-5">▾</span>
+      </div>
+      <div class="step-body" id="body-5">
+        <div class="step-divider"></div>
+        <div id="eval-output"></div>
+      </div>
+    </div>
+
+    <!-- STEP 6: REPORT -->
+    <div class="step" id="step-6">
+      <div class="step-head" onclick="toggleStep(6)">
+        <div class="step-num pending" id="snum-6">6</div>
+        <div class="step-info">
+          <div class="step-name">Intelligence Report &amp; Routing Decision</div>
+          <div class="step-desc">Final pipeline verdict — index, flag, or reject this document</div>
+        </div>
+        <span class="step-badge badge-neutral" id="badge-6">Pending</span>
+        <span class="chevron" id="chev-6">▾</span>
+      </div>
+      <div class="step-body" id="body-6">
+        <div class="step-divider"></div>
+        <div id="report-output"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+const SAMPLES = {
+  earnings: {
+    source: 'Earnings call · Q1 2025',
+    type: 'Transcript',
+    text: `Operator: Thank you. Our next question comes from Michael Nathanson at SVB. Please go ahead.
+
+Michael Nathanson: Thanks for taking my question. Can you give us some color on the ARPU trajectory? You mentioned $2.4 billion in ARR — is that a run rate figure or trailing twelve months?
+
+CFO: Great question, Michael. The $2.4 billion figure represents our Q1 exit ARR. Trailing twelve months revenue came in at $1.87 billion, up 34% year over year. Net revenue retention is running at 118% currently, which we feel good about given macro headwinds.
+
+Michael Nathanson: And on gross margins — I see you guided to 74-76% for the full year, but Q1 came in at 71.2%. What's driving that gap?
+
+CFO: Two factors: we had a one-time $28 million infrastructure migration charge in Q1 that won't repeat, and we're scaling our EMEA data centers which carry higher depreciation in the near term. We expect Q2 to step back up to the 73-74% range and exit the year at the high end of guidance.
+
+CEO: I'd add that our free cash flow conversion hit 22% this quarter — we generated $187 million in operating cash flow. The balance sheet is in strong shape with $1.1 billion in cash and no debt.`
+  },
+  '10k': {
+    source: 'SEC EDGAR · 10-K · FY2024',
+    type: 'SEC Filing',
+    text: `RISK FACTORS — COMPETITION
+
+The market for our cloud infrastructure services is highly competitive and rapidly evolving. Our primary competitors include Amazon Web Services, Microsoft Azure, and Google Cloud Platform, each of which has substantially greater financial resources, established brand recognition, and larger customer bases than we do.
+
+FINANCIAL DATA
+
+For the fiscal year ended December 31, 2024:
+- Total revenue: $4.82 billion (up 28% from $3.77 billion in FY2023)
+- Gross profit: $3.19 billion (gross margin: 66.2%)
+- Operating loss: $(412) million (operating margin: -8.5%)
+- Adjusted EBITDA: $847 million (Adjusted EBITDA margin: 17.6%)
+- Total debt: $2.3 billion (3.1x Adjusted EBITDA leverage)
+- Remaining performance obligations: $9.1 billion (up 31% year over year)
+
+DILUTED SHARE COUNT: 412 million shares outstanding as of March 15, 2025. The Company had 287 million weighted average diluted shares for FY2024.
+
+SEGMENT INFORMATION: The Company operates in a single reportable segment — cloud infrastructure services.`
+  },
+  merger: {
+    source: 'M&A Advisory · CIM · Confidential',
+    type: 'Deal Memo',
+    text: `PROJECT FALCON — CONFIDENTIAL INFORMATION MEMORANDUM
+
+EXECUTIVE SUMMARY
+
+Target Company ("Falcon") is a leading provider of AI-powered supply chain optimization software, serving over 340 enterprise customers across 18 countries. The Company has demonstrated consistent 40%+ ARR growth over the past three fiscal years.
+
+FINANCIAL HIGHLIGHTS (FY2024)
+- ARR: $183 million (up 43% YoY)
+- Gross margin: 81%
+- Net Revenue Retention: 124%
+- Last Twelve Months Revenue: $161 million
+- EBITDA: $(22) million (EBITDA margin: -14%)
+- Total addressable market: estimated $47 billion by 2028
+
+VALUATION GUIDANCE
+Based on comparable transactions in the SaaS infrastructure space, we believe a 15-20x ARR multiple is appropriate, implying a valuation range of $2.7 billion to $3.7 billion. Recent precedent transactions include the acquisition of Coupa Software at 16x forward ARR and the take-private of Avalara at 14x trailing ARR.
+
+INVESTMENT HIGHLIGHTS
+The business benefits from deep workflow integrations creating high switching costs, reflected in 97% gross revenue retention. Management has identified a clear path to profitability by FY2026 through operating leverage on the current cost structure.`
+  }
+};
+
+let docText = '';
+let currentSample = 'earnings';
+let pipelineRunning = false;
+let stepsDone = 0;
+
+function loadSample(type, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if (type === 'custom') {
+    document.getElementById('doc-text').value = '';
+    document.getElementById('doc-source-tag').textContent = 'Custom';
+    document.getElementById('doc-type-tag').textContent = 'User input';
+    updateStats();
+    return;
+  }
+  currentSample = type;
+  const s = SAMPLES[type];
+  document.getElementById('doc-text').value = s.text;
+  document.getElementById('doc-source-tag').textContent = s.source;
+  document.getElementById('doc-type-tag').textContent = s.type;
+  updateStats();
+}
+
+function updateStats() {
+  const t = document.getElementById('doc-text').value;
+  const words = t.trim() ? t.trim().split(/\s+/).length : 0;
+  document.getElementById('doc-stats').textContent = `${words.toLocaleString()} words · ${t.length.toLocaleString()} chars`;
+}
+document.getElementById('doc-text').addEventListener('input', updateStats);
+loadSample('earnings', document.querySelector('.tab-btn'));
+
+function toggleStep(n) {
+  const body = document.getElementById(`body-${n}`);
+  const chev = document.getElementById(`chev-${n}`);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+function goStep(n) {
+  document.querySelectorAll('.nav-item').forEach((el,i) => {
+    el.classList.remove('active','running');
+  });
+  document.getElementById(`nav-${n}`).classList.add('active');
+  document.getElementById(`step-${n}`).scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function setStepState(n, state, badgeText, badgeClass) {
+  const num = document.getElementById(`snum-${n}`);
+  const badge = document.getElementById(`badge-${n}`);
+  const step = document.getElementById(`step-${n}`);
+  const nav = document.getElementById(`nav-${n}`);
+  num.className = `step-num ${state}`;
+  num.textContent = state === 'done' ? '✓' : n;
+  badge.textContent = badgeText;
+  badge.className = `step-badge ${badgeClass}`;
+  step.className = `step ${state === 'active' ? 'active-step' : state === 'done' ? 'complete' : ''}`;
+  nav.className = `nav-item ${state === 'active' || state === 'running' ? 'active running' : state === 'done' ? 'done' : ''}`;
+  if (state !== 'pending') {
+    document.getElementById(`body-${n}`).classList.add('open');
+    document.getElementById(`chev-${n}`).classList.add('open');
+  }
+}
+
+function runStep1() {
+  docText = document.getElementById('doc-text').value.trim();
+  if (!docText) { alert('Please paste or select a document sample first.'); return; }
+  setStepState(1, 'done', 'Parsed', 'badge-ok');
+  setStepState(2, 'active', 'Running...', 'badge-gold');
+  renderQualityOutput();
+}
+
+function renderQualityOutput() {
+  const sample = SAMPLES[currentSample] || { type: 'Custom', source: 'User input' };
+  const isEarnings = currentSample === 'earnings';
+  const is10k = currentSample === '10k';
+  const qScores = isEarnings
+    ? {numerical:82, citation:68, entity:91, temporal:77, overall:80}
+    : is10k
+    ? {numerical:94, citation:88, entity:95, temporal:72, overall:89}
+    : {numerical:88, citation:74, entity:86, temporal:83, overall:84};
+
+  document.getElementById('quality-output').innerHTML = `
+    <div class="metric-row">
+      <div class="metric-mini"><span class="metric-mini-val" style="color:${scoreColor(qScores.overall)}">${qScores.overall}</span><div class="metric-mini-label">Overall quality</div></div>
+      <div class="metric-mini"><span class="metric-mini-val" style="color:${scoreColor(qScores.numerical)}">${qScores.numerical}</span><div class="metric-mini-label">Numerical integrity</div></div>
+      <div class="metric-mini"><span class="metric-mini-val" style="color:${scoreColor(qScores.citation)}">${qScores.citation}</span><div class="metric-mini-label">Citation density</div></div>
+      <div class="metric-mini"><span class="metric-mini-val" style="color:${scoreColor(qScores.entity)}">${qScores.entity}</span><div class="metric-mini-label">Entity completeness</div></div>
+      <div class="metric-mini"><span class="metric-mini-val" style="color:${scoreColor(qScores.temporal)}">${qScores.temporal}</span><div class="metric-mini-label">Temporal validity</div></div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Score breakdown — each dimension 0–100</div>
+    ${['Numerical integrity','Citation density','Entity completeness','Temporal validity'].map((label,i) => {
+      const vals = [qScores.numerical, qScores.citation, qScores.entity, qScores.temporal];
+      const v = vals[i];
+      return `<div style="display:flex;align-items:center;gap:10px;padding:5px 0">
+        <div style="width:130px;font-size:11.5px;color:var(--text2)">${label}</div>
+        <div class="prog-wrap" style="flex:1;margin:0"><div class="prog-fill" style="width:${v}%;background:${scoreColor(v)}"></div></div>
+        <div style="font-size:11.5px;font-family:'JetBrains Mono',monospace;color:${scoreColor(v)};min-width:26px;text-align:right">${v}</div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--line)">
+      <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;font-weight:500">Pipeline decision</div>
+      <div style="font-size:12.5px;color:var(--text2)">Overall score <strong style="color:${scoreColor(qScores.overall)}">${qScores.overall}/100</strong> — ${qScores.overall >= 85 ? '✓ Meets Rogo indexing threshold. Proceed to hallucination scan.' : '⚠ Below 85-point threshold — citation density and temporal validity need review before indexing.'}</div>
+    </div>`;
+
+  setTimeout(() => {
+    setStepState(2, 'done', `Score: ${qScores.overall}`, qScores.overall >= 85 ? 'badge-ok' : 'badge-warn');
+    setStepState(3, 'running', 'Claude analyzing...', 'badge-gold');
+    runHallucinationDetection();
+  }, 800);
+}
+
+function scoreColor(v) {
+  if (v >= 85) return 'var(--ok)';
+  if (v >= 70) return 'var(--gold)';
+  return 'var(--danger)';
+}
+
+async function runHallucinationDetection() {
+  const streamEl = document.createElement('div');
+  streamEl.className = 'ai-stream-wrap';
+  streamEl.innerHTML = `<div class="ai-stream-label">✦ Claude · Hallucination &amp; Claim Verification</div><div class="ai-stream-text" id="hall-stream"><span class="spin"></span> Scanning claims against financial ground truth...</div>`;
+  document.getElementById('hallucination-output').innerHTML = '';
+  document.getElementById('hallucination-output').appendChild(streamEl);
+
+  const prompt = `You are a financial data quality agent for Rogo AI — a platform that indexes 50M+ financial documents for use by investment bankers and PE professionals. Hallucinations in financial data cause real client harm.
+
+Analyze this financial document extract for hallucination risk and factual claim quality:
+
+DOCUMENT:
+${docText}
+
+DOCUMENT TYPE: ${SAMPLES[currentSample]?.type || 'Financial document'}
+SOURCE: ${SAMPLES[currentSample]?.source || 'Unknown'}
+
+Return a structured analysis with:
+1. HALLUCINATION RISK: overall risk level (Low/Medium/High) with a percentage confidence
+2. CLAIMS VERIFIED: list 3-5 specific factual claims in the document and assess each as Verified/Unverifiable/Suspicious — with your reasoning in 1 sentence each
+3. RED FLAGS: any numbers, citations, or statements that appear inconsistent or suspicious (be specific)
+4. BANKER TRUST SCORE: 0-100 score reflecting how much a senior banker should trust these figures without further verification
+5. RECOMMENDATION: one sentence on whether this document should be indexed in Rogo's RAG corpus
+
+Format clearly with headers. Be specific about which claims and numbers. Keep it under 280 words.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:700,
+        messages:[{role:'user',content:prompt}],
+        stream:true
+      })
+    });
+
+    let buf = '';
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    const el = document.getElementById('hall-stream');
+
+    while(true) {
+      const {done,value} = await reader.read();
+      if(done) break;
+      const lines = dec.decode(value).split('\n');
+      for(const line of lines) {
+        if(line.startsWith('data: ')) {
+          try {
+            const d = JSON.parse(line.slice(6));
+            if(d.type === 'content_block_delta' && d.delta?.text) {
+              buf += d.delta.text;
+              el.innerHTML = fmt(buf) + '<span class="cursor"></span>';
+            }
+          } catch(e){}
+        }
+      }
+    }
+    el.innerHTML = fmt(buf);
+
+    const isLowRisk = buf.toLowerCase().includes('low risk') || buf.toLowerCase().includes('risk: low') || buf.toLowerCase().includes('low hallucination');
+    setStepState(3, 'done', isLowRisk ? 'Low risk' : 'Flags found', isLowRisk ? 'badge-ok' : 'badge-warn');
+    setStepState(4, 'running', 'Calculating...', 'badge-gold');
+    runFreshnessDecay();
+  } catch(e) {
+    document.getElementById('hall-stream').innerHTML = '<span style="color:var(--danger)">API error — check your key is configured.</span>';
+    setStepState(3, 'done', 'Error', 'badge-danger');
+  }
+}
+
+function runFreshnessDecay() {
+  const isEarnings = currentSample === 'earnings';
+  const is10k = currentSample === '10k';
+  const daysOld = isEarnings ? 45 : is10k ? 120 : 60;
+  const docDate = isEarnings ? 'Q1 2025 (approx. March 2025)' : is10k ? 'FY2024 10-K (filed Feb 2025)' : 'Recent M&A memo (Mar 2025)';
+  const halfLifeDays = isEarnings ? 90 : is10k ? 365 : 30;
+  const decayFactor = Math.round(Math.exp(-0.693 * daysOld / halfLifeDays) * 100);
+  const indexScore = Math.round(decayFactor * (isEarnings ? 0.80 : is10k ? 0.89 : 0.84));
+  const verdict = indexScore > 70 ? 'Keep in index' : indexScore > 45 ? 'Flag for review' : 'Deprioritize';
+  const verdictClass = indexScore > 70 ? 'badge-ok' : indexScore > 45 ? 'badge-warn' : 'badge-danger';
+
+  document.getElementById('freshness-output').innerHTML = `
+    <div class="output-grid">
+      <div class="output-card">
+        <div class="output-label">Document date</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text);margin-top:4px">${docDate}</div>
+        <div class="output-sub">~${daysOld} days since publication</div>
+      </div>
+      <div class="output-card">
+        <div class="output-label">Half-life (this doc type)</div>
+        <div class="output-val" style="color:var(--info)">${halfLifeDays}d</div>
+        <div class="output-sub">${isEarnings ? 'Earnings calls: 90-day half-life' : is10k ? 'Annual filings: 365-day half-life' : 'M&A memos: 30-day half-life'}</div>
+      </div>
+      <div class="output-card">
+        <div class="output-label">Decay factor</div>
+        <div class="output-val" style="color:${scoreColor(decayFactor)}">${decayFactor}%</div>
+        <div class="output-sub">Residual relevance weight</div>
+      </div>
+      <div class="output-card">
+        <div class="output-label">RAG index score</div>
+        <div class="output-val" style="color:${scoreColor(indexScore)}">${indexScore}/100</div>
+        <div class="output-sub"><span class="step-badge ${verdictClass}" style="font-size:10px">${verdict}</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:var(--bg3);border-radius:var(--r);border:1px solid var(--line);font-size:12px;color:var(--text2)">
+      <strong style="color:var(--text)">Decay model:</strong> score = quality × e^(−0.693 × age / half_life). ${isEarnings ? 'Earnings call data decays faster than annual filings — guidance and metrics become stale within 2 quarters.' : is10k ? '10-K filings retain high relevance for ~1 year — financial structure and risk factors age slowly.' : 'M&A memos are highly time-sensitive — deal terms and valuations become misleading within 60 days.'}
+    </div>`;
+
+  setTimeout(() => {
+    setStepState(4, 'done', verdict, verdictClass);
+    setStepState(5, 'running', 'Claude judging...', 'badge-gold');
+    runModelEval();
+  }, 600);
+}
+
+async function runModelEval() {
+  const streamEl = document.createElement('div');
+  streamEl.innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px">Claude acts as LLM-as-judge, scoring a simulated Rogo AI response against this document's ground truth.</div>
+    <div class="ai-stream-wrap">
+      <div class="ai-stream-label">✦ Claude · LLM-as-Judge Evaluation</div>
+      <div class="ai-stream-text" id="eval-stream"><span class="spin"></span> Generating Rogo AI response then evaluating accuracy...</div>
+    </div>`;
+  document.getElementById('eval-output').innerHTML = '';
+  document.getElementById('eval-output').appendChild(streamEl);
+
+  const evalPrompt = `You are acting as both a simulated Rogo AI system AND an LLM-as-judge evaluator. This is a financial model evaluation task.
+
+GROUND TRUTH DOCUMENT:
+${docText}
+
+DOCUMENT TYPE: ${SAMPLES[currentSample]?.type || 'Financial document'}
+
+TASK:
+1. First, generate what a financial AI (like Rogo) would answer if asked: "Summarize the key financial metrics and any concerns from this document." — keep this to 3-4 sentences.
+
+2. Then, acting as LLM-as-judge, score that AI response on these criteria (0-10 each):
+   - Numerical accuracy: did it get the numbers right?
+   - Citation faithfulness: did it stay grounded in the source?
+   - Banker-grade precision: would a senior banker trust these figures?
+   - Hallucination risk: any fabricated details not in the source?
+
+3. Give an OVERALL EVAL SCORE (0-100) and one sentence on what the biggest risk would be if this response went to a client without review.
+
+Format: AI RESPONSE: [text] | EVALUATION: [scores] | OVERALL: [score] | RISK: [sentence]
+Keep it under 250 words.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:600,
+        messages:[{role:'user',content:evalPrompt}],
+        stream:true
+      })
+    });
+
+    let buf = '';
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    const el = document.getElementById('eval-stream');
+
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      const lines = dec.decode(value).split('\n');
+      for(const line of lines){
+        if(line.startsWith('data: ')){
+          try {
+            const d = JSON.parse(line.slice(6));
+            if(d.type === 'content_block_delta' && d.delta?.text){
+              buf += d.delta.text;
+              el.innerHTML = fmt(buf) + '<span class="cursor"></span>';
+            }
+          }catch(e){}
+        }
+      }
+    }
+    el.innerHTML = fmt(buf);
+    setStepState(5, 'done', 'Evaluation complete', 'badge-ok');
+    setStepState(6, 'running', 'Generating...', 'badge-gold');
+    runReport();
+  } catch(e) {
+    document.getElementById('eval-stream').innerHTML = '<span style="color:var(--danger)">API error.</span>';
+    setStepState(5, 'done', 'Error', 'badge-danger');
+  }
+}
+
+async function runReport() {
+  const reportEl = document.createElement('div');
+  reportEl.innerHTML = `
+    <div class="ai-stream-wrap">
+      <div class="ai-stream-label">✦ Claude · Final Intelligence Report</div>
+      <div class="ai-stream-text" id="report-stream"><span class="spin"></span> Synthesizing pipeline outputs...</div>
+    </div>`;
+  document.getElementById('report-output').innerHTML = '';
+  document.getElementById('report-output').appendChild(reportEl);
+
+  const reportPrompt = `You are the final stage of Rogo AI's financial document quality pipeline. You've run quality scoring, hallucination detection, freshness decay, and LLM evaluation on this document.
+
+DOCUMENT:
+${docText}
+
+TYPE: ${SAMPLES[currentSample]?.type || 'Financial document'}
+
+Generate a concise final intelligence report with:
+
+ROUTING DECISION: INDEX / FLAG FOR REVIEW / REJECT (one clear call)
+CONFIDENCE: percentage
+KEY RISKS: 2-3 bullet points on what could mislead a banker
+PRIORITY ACTIONS: 2-3 specific steps Rogo's data team should take
+ESTIMATED IMPACT: one sentence on what happens to Rogo's model quality if this document is handled correctly vs. incorrectly
+
+Then add a 2-sentence note on how a dedicated data analyst (with skills in ETL pipelines, Python/SQL, dbt, Snowflake, and ML model evaluation) would automate this quality pipeline at scale — specifically referencing the value of having this infrastructure built vs. doing it manually.
+
+Keep to under 200 words. Be direct and specific.`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:500,
+        messages:[{role:'user',content:reportPrompt}],
+        stream:true
+      })
+    });
+
+    let buf = '';
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    const el = document.getElementById('report-stream');
+
+    while(true){
+      const {done,value} = await reader.read();
+      if(done) break;
+      const lines = dec.decode(value).split('\n');
+      for(const line of lines){
+        if(line.startsWith('data: ')){
+          try{
+            const d = JSON.parse(line.slice(6));
+            if(d.type==='content_block_delta' && d.delta?.text){
+              buf += d.delta.text;
+              el.innerHTML = fmt(buf) + '<span class="cursor"></span>';
+            }
+          }catch(e){}
+        }
+      }
+    }
+    el.innerHTML = fmt(buf);
+    setStepState(6, 'done', 'Report ready', 'badge-gold');
+    document.getElementById('nav-6').classList.remove('running');
+    document.getElementById('main-run-btn').disabled = false;
+    document.getElementById('main-run-btn').textContent = '▶ Run again';
+    pipelineRunning = false;
+  } catch(e) {
+    document.getElementById('report-stream').innerHTML = '<span style="color:var(--danger)">API error.</span>';
+    setStepState(6, 'done', 'Error', 'badge-danger');
+    pipelineRunning = false;
+  }
+}
+
+function runFullPipeline() {
+  if (pipelineRunning) return;
+  const doc = document.getElementById('doc-text').value.trim();
+  if (!doc) { loadSample('earnings', document.querySelector('.tab-btn')); }
+  pipelineRunning = true;
+  document.getElementById('main-run-btn').disabled = true;
+  document.getElementById('main-run-btn').textContent = 'Running...';
+  runStep1();
+}
+
+function resetAll() {
+  location.reload();
+}
+
+function fmt(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^#{1,3}\s(.+)$/gm,'<strong style="color:var(--text);display:block;margin-top:8px">$1</strong>')
+    .replace(/\n\n/g,'<br><br>')
+    .replace(/\n/g,'<br>');
+}
+</script>
+</body>
+</html>
